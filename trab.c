@@ -75,7 +75,7 @@ int main(){
     }
 
     // Palavra basica, sem repeticao de letra
-    char palavra[5] = "ACGT!";
+    char palavra[6] = "ACGT!";
 
     // Comeca algoritmo de Weiner
     int posicao;
