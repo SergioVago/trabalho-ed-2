@@ -1,9 +1,14 @@
+/*A variavel tamanho (diferenca entre v e vlinha) está dando problema. Diz nao estar inicializada, mas isso ocorre na linha 95*/
+
 #include<stdio.h>
 #include<stdlib.h>
 #include<string.h>
+#include<time.h>
 
 // Tamanho da palavra + 1
-#define N 9
+#define N 10
+int tam1 = 0;
+int tam2 = 0;
 // Estrutura do no da arvore
 typedef struct No No;
 struct No{
@@ -80,13 +85,21 @@ int main(){
     }
 
     // Palavra basica, sem repeticao de letra
-    char palavra[8] = "AGGACTA!";
+    char palavra[10] = "GACGACTA!";
+
+    // Marcando tempo
+    clock_t inicio,fim;
+    double tempo;
+    inicio = clock();
 
     // Comeca algoritmo de Weiner
     int posicao;
+    //int tam1 = 0; // distancia entre raiz e v
+    //int tam2 = 0; // distancia entre v e vlinha
     for(int i=strlen(palavra)-1;i>=0;i--){
         posicao = converte_letra_posicao(palavra[i]);
-        int tamanho = 0;
+
+        // Procurando v,3,
 
         No* aux = folhas[i+1];
         while(aux->indicador[posicao] == 0 && aux->pai != NULL){
@@ -94,12 +107,170 @@ int main(){
             aux = aux->pai;
         }
         No* v = aux;
-        while(aux->links[posicao] != NULL && aux->pai != NULL){
+
+        // Se v for a raiz e indicador for zero
+        if(v==folhas[N-1] && v->indicador[posicao] == 0){
+            v->inicio[posicao] = i;
+            v->fim[posicao] = strlen(palavra);
+            v->filhos[posicao] = folhas[i];
+        }
+
+        // Senao, procurando vlinha
+        else{
+            while(aux->links[posicao] == NULL && aux->pai != NULL){
+                if(aux!=folhas[N-1]) tam1 += (aux->fim[posicao] - aux->inicio[posicao] + 1);
+                tam2 += (aux->fim[posicao] - aux->inicio[posicao] + 1);
+                aux = aux->pai;
+            }
+            No* vlinha = aux;
+
+            // Se vlinha for a raiz e link for nulo
+            if(vlinha==folhas[N-1] && vlinha->links[posicao] == NULL){
+                // Salva no z
+                No* z = vlinha->filhos[posicao];
+
+                // Cria no interno
+                No* novoNo = (No*)malloc(sizeof(No));
+                novoNo->pai = vlinha;
+                novoNo->folha = 0;
+                for(int j=0;j<10;j++){
+                    novoNo->indicador[j] = z->indicador[j];
+                    novoNo->links[j] = z->links[j];
+                }
+
+                // Separa aresta antiga
+                int novaPosicao = converte_letra_posicao(palavra[vlinha->inicio[posicao]+1]);
+                novoNo->inicio[novaPosicao] = vlinha->inicio[posicao] + 1;
+                novoNo->fim[novaPosicao] = vlinha->fim[posicao];
+                novoNo->filhos[novaPosicao] = z;
+                z->pai = novoNo;
+
+                // Cria nova aresta e folha
+                novaPosicao = converte_letra_posicao(palavra[i+tam1+1]);
+                novoNo->inicio[novaPosicao] = i + tam1 + 1;
+                novoNo->fim[novaPosicao] = strlen(palavra)-1;
+                novoNo->filhos[novaPosicao] = folhas[i];
+                folhas[i]->pai = novoNo;
+
+                // Ajusta intervalo de vlinha
+                vlinha->filhos[posicao] = novoNo;
+                vlinha->fim[posicao] = vlinha->inicio[posicao] + tam1;
+                vlinha->links[posicao] = novoNo;
+            
+                // Guardando no criado
+                nos[no] = novoNo;
+                no++;   
+            }
+            // Se link de vlinha nao for nulo
+            else if(vlinha->links[posicao]!=NULL){
+                // No do link
+                No* w = vlinha->links[posicao];
+
+                // Salva no z
+                printf("%d %d\n",tam1,tam2);
+                int novaPosicao = converte_letra_posicao(palavra[i+tam2]);
+                No* z = w->filhos[novaPosicao];
+            
+                // Cria no interno
+                No* novoNo = (No*)malloc(sizeof(No));
+                novoNo->pai = w;
+                novoNo->folha = 0;
+                for(int j=0;j<10;j++){
+                    novoNo->indicador[j] = z->indicador[j];
+                    novoNo->links[j] = z->links[j];
+                }
+            
+                // Separa aresta antiga
+                int nPosicao = converte_letra_posicao(palavra[w->inicio[novaPosicao]+1]);
+                novoNo->inicio[nPosicao] = w->inicio[novaPosicao] + 1;
+                novoNo->fim[nPosicao] = w->fim[novaPosicao];
+                novoNo->filhos[nPosicao] = z;
+                z->pai = novoNo;
+
+                // Ajusta intervalo de w
+                w->filhos[novaPosicao] = novoNo;
+                w->fim[novaPosicao] = w->inicio[novaPosicao] + tam2;
+                w->links[novaPosicao] = novoNo;
+
+                // Guardando no criado
+                nos[no] = novoNo;
+                no++;
+            }
+        }
+
+        // Atualizando indicadores
+        aux = folhas[i+1];
+        while(aux!=NULL){
+            aux->indicador[posicao] = 1;
+            aux = aux->pai;
+        }
+        
+        // Printando dados
+        printf("\nInserindo %c:\n",palavra[i]);
+        // Printando indicadores
+        for(int i=0;i<N;i++){
+            if(nos[i]!=NULL){
+                printf("\nIndicadores do no criado: ");
+                for(int j=0;j<10;j++) printf("%d ", nos[i]->indicador[j]);
+                printf("\nLinks do no criado: ");
+                for(int j=0;j<10;j++) printf("%p ", nos[i]->links[j]);
+                printf("\n"); 
+            }    
+        }
+
+        // Printando indicadores
+        printf("\nIndicadores:\n");
+        for(int i=0;i<N;i++){
+            printf("Folha %d: ", i+1);
+            for(int j=0;j<10;j++){
+                printf("%d ", folhas[i]->indicador[j]);
+            }
+            printf("\n");
+        }
+
+        // Printando links
+        printf("\nLinks:\n");
+        for(int i=0;i<N;i++){
+            printf("Folha %d: ", i+1);
+            for(int j=0;j<10;j++){
+                printf("%p ", folhas[i]->links[j]);
+            }
+            printf("\n");
+        }
+    }
+    
+    fim = clock();
+    tempo = ((double)(fim-inicio))/CLOCKS_PER_SEC;
+    //printf("%f\n",tempo);
+
+    return 0;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/*
+        while(aux->links[posicao] == NULL && aux->pai != NULL){
             tamanho += (aux->fim[posicao] - aux->inicio[posicao] + 1);
             aux = aux->pai;
         }
-        No * vlinha = aux;
-
+        No* vlinha = aux;
         if(v == vlinha && v == folhas[N-1] && v->indicador[posicao] == 0){
             vlinha->inicio[posicao] = i;
             vlinha->fim[posicao] = strlen(palavra);
@@ -110,7 +281,7 @@ int main(){
             //printf("\n");
         }
 
-        else if(v == vlinha && v == folhas[N-1] && v->indicador[posicao] == 1){
+        else if(v == vlinha && vlinha == folhas[N-1] && vlinha->indicador[posicao] == 1 && vlinha->links[posicao] == NULL){
             // Salva no z
             No* z = vlinha->filhos[posicao];
 
@@ -144,44 +315,87 @@ int main(){
             
             // Guardando no criado
             nos[no] = novoNo;
-            no++;         
+            no++;        
         }
+        else if(vlinha->links[posicao]!=NULL){
+            // No do link
+            No* w = vlinha->links[posicao];
 
+            //int tamanho = 1;
+
+            // Salva no z
+            int novaPosicao = converte_letra_posicao(palavra[i+tamanho]);
+            No* z = w->filhos[novaPosicao];
+            
+            // Cria no interno
+            No* novoNo = (No*)malloc(sizeof(No));
+            novoNo->pai = w;
+            novoNo->folha = 0;
+            for(int j=0;j<10;j++){
+                novoNo->indicador[j] = z->indicador[j];
+                novoNo->links[j] = z->links[j];
+            }
+            
+            // Separa aresta antiga
+            int nPosicao = converte_letra_posicao(palavra[w->inicio[novaPosicao]+1]);
+            novoNo->inicio[nPosicao] = w->inicio[novaPosicao] + 1;
+            novoNo->fim[nPosicao] = w->fim[novaPosicao];
+            novoNo->filhos[nPosicao] = z;
+            z->pai = novoNo;
+
+            // Ajusta intervalo de w
+            w->filhos[novaPosicao] = novoNo;
+            w->fim[novaPosicao] = w->inicio[novaPosicao] + tamanho;
+            w->links[novaPosicao] = novoNo;
+
+            // Guardando no criado
+            nos[no] = novoNo;
+            no++;
+        }
+        
         // Atualizando indicadores
         aux = folhas[i+1];
         while(aux!=NULL){
             aux->indicador[posicao] = 1;
             aux = aux->pai;
         }
-    }
-
-    // Printando indicadores
-    for(int i=0;i<N;i++){
-        if(nos[i]!=NULL){
-            printf("\nIndicadores do no criado: ");
-            for(int j=0;j<10;j++) printf("%d ", nos[i]->indicador[j]);
-            printf("\n"); 
-        } 
-    }
-
-    // Printando indicadores
-    printf("\nIndicadores:\n");
-    for(int i=0;i<N;i++){
-        printf("Folha %d: ", i+1);
-        for(int j=0;j<10;j++){
-            printf("%d ", folhas[i]->indicador[j]);
+        
+        printf("\nInserindo %c:\n",palavra[i]);
+        // Printando indicadores
+        for(int i=0;i<N;i++){
+            if(nos[i]!=NULL){
+                printf("\nIndicadores do no criado: ");
+                for(int j=0;j<10;j++) printf("%d ", nos[i]->indicador[j]);
+                printf("\nLinks do no criado: ");
+                for(int j=0;j<10;j++) printf("%p ", nos[i]->links[j]);
+                printf("\n"); 
+            }    
         }
-        printf("\n");
+
+        // Printando indicadores
+        printf("\nIndicadores:\n");
+        for(int i=0;i<N;i++){
+            printf("Folha %d: ", i+1);
+            for(int j=0;j<10;j++){
+                printf("%d ", folhas[i]->indicador[j]);
+            }
+            printf("\n");
+        }
+
+        // Printando links
+        printf("\nLinks:\n");
+        for(int i=0;i<N;i++){
+            printf("Folha %d: ", i+1);
+            for(int j=0;j<10;j++){
+                printf("%p ", folhas[i]->links[j]);
+            }
+            printf("\n");
+        }
     }
 
-    // Printando links
-    printf("\nLinks:\n");
-    for(int i=0;i<N;i++){
-        printf("Folha %d: ", i+1);
-        for(int j=0;j<10;j++){
-            printf("%p ", folhas[i]->links[j]);
-        }
-        printf("\n");
-    }
+    fim = clock();
+    tempo = ((double)(fim-inicio))/CLOCKS_PER_SEC;
+    //printf("%f\n",tempo);
+
     return 0;
-}
+}*/
