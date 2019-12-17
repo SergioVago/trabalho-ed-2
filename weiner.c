@@ -7,8 +7,7 @@
 
 // Tamanho da palavra + 1
 #define N 10
-int tam1 = 0;
-int tam2 = 0;
+
 // Estrutura do no da arvore
 typedef struct No No;
 struct No{
@@ -94,8 +93,8 @@ int main(){
 
     // Comeca algoritmo de Weiner
     int posicao;
-    //int tam1 = 0; // distancia entre raiz e v
-    //int tam2 = 0; // distancia entre v e vlinha
+    int tam1 = 0; // distancia entre raiz e v
+    int tam2 = 0; // distancia entre v e vlinha
     for(int i=strlen(palavra)-1;i>=0;i--){
         posicao = converte_letra_posicao(palavra[i]);
 
@@ -118,8 +117,8 @@ int main(){
         // Senao, procurando vlinha
         else{
             while(aux->links[posicao] == NULL && aux->pai != NULL){
-                if(aux!=folhas[N-1]) tam1 += (aux->fim[posicao] - aux->inicio[posicao] + 1);
-                tam2 += (aux->fim[posicao] - aux->inicio[posicao] + 1);
+                if(aux!=folhas[N-1]) tam1 += (aux->fim[posicao] - aux->inicio[posicao]);
+                tam2 += (aux->fim[posicao] - aux->inicio[posicao]);
                 aux = aux->pai;
             }
             No* vlinha = aux;
